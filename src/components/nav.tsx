@@ -15,6 +15,8 @@ const ITEMS = [
 
 export function Nav() {
   const pathname = usePathname();
+  // Studio route is a fully-standalone editor experience — no chrome.
+  if (pathname.startsWith("/studio")) return null;
   const onHome = pathname === "/";
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);

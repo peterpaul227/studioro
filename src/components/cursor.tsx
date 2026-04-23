@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 /**
  * Custom cursor — a 6px dot that follows the mouse, grows into a
@@ -11,12 +12,16 @@ import { useEffect, useRef } from "react";
  * Hidden on touch devices and on motion-reduced preferences.
  */
 export function Cursor() {
+  const pathname = usePathname();
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Don't hijack the cursor inside the Sanity Studio — editors need
+    // the native pointer for drag-drop, resizing, etc.
+    if (pathname.startsWith("/studio")) return;
     // Skip on touch / reduced-motion
     if (window.matchMedia("(pointer: coarse)").matches) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -90,7 +95,9 @@ export function Cursor() {
       window.removeEventListener("mouseleave", onLeave);
       cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [pathname]);
+
+  if (pathname.startsWith("/studio")) return null;
 
   return (
     <>

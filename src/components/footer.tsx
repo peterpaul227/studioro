@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const YEAR = new Date().getFullYear();
 
 export function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/studio")) return null;
   return (
     <footer className="relative bg-ink text-paper/90">
       <div className="mx-auto max-w-[1680px] px-6 md:px-10 pt-24 md:pt-32 pb-12">
