@@ -2,7 +2,19 @@
  * Content source — derived from the live studioro.com portfolio (46 projects).
  * Each `thumbnail` points at the Cargo Collective payload URL so the first deploy
  * looks real immediately. Swap to Sanity when the CMS goes live.
+ *
+ * Video IDs are merged in at module-init from `scraped-galleries.json`, which
+ * was produced by a headless-Chromium scrape of every project subpage. This way
+ * data.ts stays human-readable while every entry auto-picks up a playable embed.
  */
+import scrapedGalleries from "./scraped-galleries.json";
+
+type ScrapedEntry = {
+  videos?: { provider: "vimeo" | "youtube"; id: string }[];
+  gallery?: string[];
+  extraText?: string;
+};
+const SCRAPED = scrapedGalleries as Record<string, ScrapedEntry>;
 
 export type ProjectCategory =
   | "film"
@@ -542,6 +554,19 @@ export const projects: Project[] = [
     palette: ["#1a140a", "#4a3a1a"],
   },
 ];
+
+// Merge scraped Vimeo/YouTube IDs into each project (first video wins).
+// Keeps the hand-written entries above readable — no IDs inline. If a slug
+// has no scraped match, the project still renders with its thumbnail.
+for (const p of projects) {
+  const s = SCRAPED[p.slug];
+  if (!s?.videos?.length) continue;
+  const first = s.videos[0];
+  if (!p.videoId) {
+    p.videoId = first.id;
+    p.videoProvider = first.provider;
+  }
+}
 
 export const featuredProjects = projects.filter((p) => p.featured);
 

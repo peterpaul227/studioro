@@ -4,17 +4,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { clsx } from "clsx";
 import type { Project } from "@/lib/data";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   project: Project;
   aspect?: "16/9" | "4/5" | "1/1" | "3/4";
   priority?: boolean;
-  eager?: boolean;
   index?: number;
   className?: string;
 };
 
+/**
+ * Project card — thumbnail that, on hover, fades into a muted autoplaying
+ * Vimeo preview (when `project.videoId` is present). The Vimeo background
+ * player is loaded lazily on hover to avoid loading 40 iframes at once on
+ * the Work page. Gracefully falls back to a subtle Ken Burns zoom on the
+ * thumbnail if there's no video.
+ */
 export function ProjectCard({
   project,
   aspect = "16/9",
@@ -23,6 +29,30 @@ export function ProjectCard({
   className,
 }: Props) {
   const [hover, setHover] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Lazy-mount the iframe only after the first hover, so the Work grid with
+  // 40 cards doesn't pre-fetch 40 Vimeo players.
+  const [iframeSrc, setIframeSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!hover || iframeSrc || !project.videoId) return;
+    const params =
+      "background=1&autoplay=1&loop=1&muted=1&transparent=0&controls=0";
+    const src =
+      project.videoProvider === "youtube"
+        ? `https://www.youtube-nocookie.com/embed/${project.videoId}?autoplay=1&mute=1&loop=1&playlist=${project.videoId}&controls=0&modestbranding=1`
+        : `https://player.vimeo.com/video/${project.videoId}?${params}`;
+    setIframeSrc(src);
+  }, [hover, iframeSrc, project.videoId, project.videoProvider]);
+
+  // Hide iframe until "ready" (small delay) to avoid a jarring white flash.
+  useEffect(() => {
+    if (!iframeSrc) return;
+    const t = setTimeout(() => setVideoReady(true), 450);
+    return () => clearTimeout(t);
+  }, [iframeSrc]);
+
   const aspectClass = {
     "16/9": "aspect-[16/9]",
     "4/5": "aspect-[4/5]",
@@ -33,11 +63,16 @@ export function ProjectCard({
   return (
     <Link
       href={`/work/${project.slug}`}
+      data-cursor="view"
       onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={() => {
+        setHover(false);
+        setVideoReady(false);
+      }}
       className={clsx("group block", className)}
     >
       <div className={clsx("relative overflow-hidden bg-ink/10", aspectClass)}>
+        {/* Base layer: thumbnail or palette */}
         {project.thumbnail ? (
           <Image
             src={project.thumbnail}
@@ -46,8 +81,8 @@ export function ProjectCard({
             priority={priority}
             sizes="(min-width: 1024px) 50vw, 100vw"
             className={clsx(
-              "object-cover transition-transform duration-700 ease-out",
-              hover ? "scale-[1.04]" : "scale-100",
+              "object-cover transition-transform duration-[1400ms] ease-out",
+              hover ? "scale-[1.06]" : "scale-100",
             )}
           />
         ) : project.palette ? (
@@ -61,11 +96,28 @@ export function ProjectCard({
           <div className="absolute inset-0 bg-ink" />
         )}
 
+        {/* Hover video — mounted lazily, fades in */}
+        {iframeSrc && (
+          <iframe
+            ref={iframeRef}
+            src={iframeSrc}
+            title={`${project.title} preview`}
+            allow="autoplay; fullscreen; picture-in-picture"
+            loading="lazy"
+            className={clsx(
+              "absolute inset-0 h-full w-full object-cover pointer-events-none transition-opacity duration-700",
+              "scale-[1.25]", // trim Vimeo chrome edges
+              videoReady && hover ? "opacity-100" : "opacity-0",
+            )}
+            style={{ border: 0 }}
+          />
+        )}
+
         {/* Dark veil on hover for title legibility */}
         <div
           className={clsx(
-            "absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-500",
-            hover ? "opacity-100" : "opacity-60",
+            "absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent transition-opacity duration-500",
+            hover ? "opacity-100" : "opacity-65",
           )}
         />
 
@@ -102,9 +154,7 @@ export function ProjectCard({
           <div className="font-medium text-ink text-[15px] leading-tight">
             {project.title}
           </div>
-          <div className="text-muted text-[13px] mt-1">
-            {project.client}
-          </div>
+          <div className="text-muted text-[13px] mt-1">{project.client}</div>
         </div>
         <div className="text-muted text-[13px] font-mono whitespace-nowrap">
           {project.year}

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { projects } from "@/lib/data";
 import { Reveal } from "@/components/reveal";
 import { SectionLabel } from "@/components/section-label";
+import { VideoEmbed } from "@/components/video-embed";
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
@@ -39,26 +40,35 @@ export default async function ProjectPage(props: PageProps<"/work/[slug]">) {
 
   return (
     <article className="pt-32 md:pt-36 pb-24 bg-paper">
-      {/* Hero frame */}
+      {/* Hero frame — Vimeo/YouTube player if available, otherwise a still */}
       <div className="mx-auto max-w-[1680px] px-6 md:px-10">
-        <div className="relative aspect-[16/9] overflow-hidden bg-ink">
-          {project.thumbnail ? (
-            <Image
-              src={project.thumbnail}
-              alt={project.title}
-              fill
-              priority
-              sizes="(min-width: 1024px) 90vw, 100vw"
-              className="object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0" style={{ background: bg }} />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          <div className="absolute bottom-6 right-6 md:bottom-8 md:right-10 text-paper/60 text-[11px] font-mono tracking-[0.25em] uppercase">
-            {project.categoryLabel ?? project.category} · {project.year}
+        {project.videoId && project.videoProvider ? (
+          <VideoEmbed
+            provider={project.videoProvider}
+            id={project.videoId}
+            title={project.title}
+            poster={project.thumbnail}
+          />
+        ) : (
+          <div className="relative aspect-[16/9] overflow-hidden bg-ink">
+            {project.thumbnail ? (
+              <Image
+                src={project.thumbnail}
+                alt={project.title}
+                fill
+                priority
+                sizes="(min-width: 1024px) 90vw, 100vw"
+                className="object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0" style={{ background: bg }} />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-10 text-paper/60 text-[11px] font-mono tracking-[0.25em] uppercase">
+              {project.categoryLabel ?? project.category} · {project.year}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Title block */}
@@ -118,21 +128,37 @@ export default async function ProjectPage(props: PageProps<"/work/[slug]">) {
         </div>
       </div>
 
-      {/* Placeholder media block — add real gallery later via CMS */}
+      {/* Gallery — populated via CMS. For now a tasteful colored-field grid
+          with the thumbnail repeated so the page doesn't feel empty. */}
       <div className="mx-auto max-w-[1680px] px-6 md:px-10 mt-24 md:mt-40">
         <Reveal>
-          <SectionLabel number="02">Beeld</SectionLabel>
+          <SectionLabel number="02">Gallery</SectionLabel>
           <p className="mt-4 text-muted text-[14px] max-w-xl">
-            Extra stills en video-embeds worden toegevoegd via de CMS.
+            Stills en achter-de-schermen beelden komen hier — via Sanity CMS
+            vul je ze zelf aan per project.
           </p>
         </Reveal>
         <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className={`aspect-[4/3] ${i % 3 === 0 ? "md:col-span-2 md:aspect-[16/9]" : ""} overflow-hidden`}
+              className={`relative aspect-[4/3] ${i === 0 ? "md:col-span-2 md:aspect-[16/9]" : ""} overflow-hidden`}
               style={{ background: bg, filter: `hue-rotate(${i * 18}deg)` }}
-            />
+            >
+              {project.thumbnail && i === 0 && (
+                <Image
+                  src={project.thumbnail}
+                  alt={`${project.title} — still`}
+                  fill
+                  sizes="(min-width: 768px) 60vw, 100vw"
+                  className="object-cover opacity-80 mix-blend-luminosity"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/40" />
+              <div className="absolute bottom-3 left-4 text-[10px] font-mono tracking-[0.25em] uppercase text-paper/50">
+                Still {String(i + 1).padStart(2, "0")}
+              </div>
+            </div>
           ))}
         </div>
       </div>

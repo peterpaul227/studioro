@@ -3,6 +3,8 @@ import { Inter, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { Cursor } from "@/components/cursor";
+import { PageTransition } from "@/components/page-transition";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -46,8 +48,11 @@ export default function RootLayout({
       className={`${inter.variable} ${instrument.variable} h-full`}
     >
       <body className="bg-paper text-ink antialiased flex min-h-full flex-col">
+        <Cursor />
         <Nav />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <PageTransition>{children}</PageTransition>
+        </main>
         <Footer />
       </body>
     </html>
